@@ -1,14 +1,22 @@
-import express, { Application, Request, Response } from 'express';
+import express from 'express';
+import cors from 'cors';
+import passport from 'passport';
+import authRoutes from './routes/auth.routes';
+import './config/passport.config';
 
-const app: Application = express();
-const port: number = 3000;
+const app = express();
 
-app.get('/', (req: Request, res: Response) => {
-  res.send({
-    message: 'Hello World!',
-  });
+app.use(express.json());
+app.use(cors({
+  origin: process.env.CLIENT_URL,
+  credentials: true,
+}));
+
+app.use(passport.initialize());
+app.use('/auth', authRoutes);
+
+app.listen(process.env.PORT, () => {
+  console.log(`Server running on port ${process.env.PORT}`);
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+export default app;
