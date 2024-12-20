@@ -8,7 +8,7 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid())
+  id        Int       @id @default(autoincrement())
   email     String    @unique
   name      String?
   avatar    String?
@@ -18,85 +18,127 @@ model User {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  events   Event[]
+  tickets  Ticket[]
+  checkIns CheckIn[]
+
   @@index([email])
   @@index([googleId])
 }
 
-model EventSetting {
-  id                 String    @id @default(uuid())
-  eventId            String    @unique
-  isTbaDatetime      Boolean?
-  startAt            DateTime?
-  endAt              DateTime?
-  isDisplayEndAtTime Boolean?
-  isDisplayTime      Boolean?
-  isOnlineVenue      Boolean?
-  isVenueSelect      Boolean?
-  venue              Venue?
+model Event {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  date        DateTime
+  location    String
+  userId      Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id])
+  eventSettings EventSettings?
+  tickets       Ticket[]
+  ticketTypes   TicketType[]
+  checkIns      CheckIn[]
+
+  @@index([userId])
 }
 
-model EventTicketType {
-  id         String    @id @default(uuid())
-  eventId    String
-
-  ticketType TicketType
-  price      Float  @default(0)
-
-  ticketName String
-  quantityAvailable   Int
-
-  isShowRemainingTicket Boolean @default(false)
-
-  salesStartAt DateTime
-  salesEndAt   DateTime
-
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-}
-
-model EnumCategory {
-  id        String    @id @default(uuid())
-  name      String    @unique
+model EventSettings {
+  id        Int       @id @default(autoincrement())
+  type      EventType @default(OFFLINE) // OFFLINE or ONLINE
+  capacity  Int
+  eventId   Int       @unique
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  eventCategories EventCategory[]
+  event Event @relation(fields: [eventId], references: [id])
 }
 
-model EventImage {
-  id             String  @id @default(uuid())
-  eventId        String  @unique
-  poster_url     String   //800x1132px
-  cover_url      String   //1200x628px
-  square_url     String?  //612x612px
-  background_url String?  //1440x668px
-  event          Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+model Ticket {
+  id           Int          @id @default(autoincrement())
+  userId       Int
+  eventId      Int
+  ticketTypeId Int
+  status       TicketStatus @default(PENDING) // PENDING, CONFIRMED, CANCELLED
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
+
+  user       User       @relation(fields: [userId], references: [id])
+  event      Event      @relation(fields: [eventId], references: [id])
+  ticketType TicketType @relation(fields: [ticketTypeId], references: [id])
+  checkIns   CheckIn[]
+  Payment    Payment[]
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([ticketTypeId])
 }
 
-model EventCategory {
-  id         String       @id @default(uuid())
-  eventId    String
-  categoryId String
-  event      Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  category   EnumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+model TicketType {
+  id             Int       @id @default(autoincrement())
+  name           String
+  price          Float     @default(0.0) // 0.0 means free ticket
+  maxPerPurchase Int       @default(1)
+  zone           String?
+  eventId        Int
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  event   Event    @relation(fields: [eventId], references: [id])
+  tickets Ticket[]
+
+  @@index([eventId])
 }
 
-model Event {
-  id            String        @id @default(uuid())
-  name          String
-  descriptionTH String?
-  descriptionEN String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  deletedAt     DateTime?
-  eventSetting  EventSetting?
-  EventImage    EventImage?
+model Venue {
+  id        Int       @id @default(autoincrement())
+  name      String
+  capacity  Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
 
-  eventCategories EventCategory[]
+model CheckIn {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  eventId      Int
+  ticketId     Int
+  qrCode       String    @unique
+  securityHash String // Hash for security validation
+  checkInAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
 
-  EventTicketType EventTicketType[]
+  user   User   @relation(fields: [userId], references: [id])
+  event  Event  @relation(fields: [eventId], references: [id])
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([ticketId])
+}
+
+model Payment {
+  id        Int           @id @default(autoincrement())
+  ticketId  Int
+  method    PaymentMethod
+  amount    Float
+  status    PaymentStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  deletedAt DateTime?
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+
+  @@index([ticketId])
 }
 
 enum Role {
@@ -104,15 +146,24 @@ enum Role {
   ADMIN
 }
 
-enum TicketType {
-  FREE
-  PAID
+enum EventType {
+  OFFLINE
+  ONLINE
 }
 
-enum Venue {
-  PROJECT_BASED_3
-  PROJECT_BASED_4
-  AUDITORIUM
-  LAB_207
-  LAB_203
+enum TicketStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  STRIPE
+  PROMPTPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }

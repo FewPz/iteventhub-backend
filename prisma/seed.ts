@@ -2,37 +2,40 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-    const EVENT_CATEGORY = [
-        "Art & Design",
-        "Beauty",
-        "Book",
-        "Business",
-        "Charity",
-        "Comedy",
-        "Concert",
-        "E-Sport",
-        "Education",
-        "Experience",
-        "Fan Meeting",
-        "Fashion",
-        "Finance & Accounting",
-        "Food & Drink",
-        "Game",
-        "Health & Wellness",
-        "Hobby",
-        "Party",
-        "Run",
-        "Sales & Marketing",
-        "Technology",
-        "Vehicle",
-    ];
-    for (const category of EVENT_CATEGORY) {
-        await prisma.enumCategory.create({
-            data: {
-                name: category,
-            },
-        });
-        console.log("Category created:", category);
+    const VENUN = [
+      {
+        name: 'Lab-207',
+        capacity: 70,
+      },
+      {
+        name: 'Lab-205',
+        capacity: 60,
+      },
+      {
+        name: 'Lab-203',
+        capacity: 70,
+      },
+      {
+        name: 'M23',
+        capacity: 70,
+      },
+      {
+        name: 'M24',
+        capacity: 70,
+      },
+      {
+        name: 'Project-Base 4',
+        capacity: 100,
+      },
+      {
+        name: 'Project-Base 3',
+        capacity: 100,
+      },
+    ]
+    for (const venu of VENUN) {
+      await prisma.venue.create({
+        data: venu
+      })
     }
 }
 
